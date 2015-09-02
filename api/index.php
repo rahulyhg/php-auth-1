@@ -10,10 +10,15 @@ $db = new dbHelper();
 // Register
 $app->post('/Mobile/v1_0/Register', function() use ($app) { 
     $data = json_decode($app->request->getBody());
+    require_once 'passwordHash.php';
     $mandatory = array('username');
     $mandatory = array('password');
     $mandatory = array('fullname');
     $mandatory = array('email');
+    
+    $password = $data->password;
+    $data->password = passwordHash::hash($password);
+    
     global $db;
     $rows = $db->insert("users", $data, $mandatory);
     if($rows["status"]=="success"){
