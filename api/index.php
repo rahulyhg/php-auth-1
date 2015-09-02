@@ -1,4 +1,7 @@
 <?php
+
+//php-auth v0.1.0
+
 require './libs/Slim/Slim.php';
 require_once 'dbHelper.php';
 
