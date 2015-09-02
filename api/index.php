@@ -1,6 +1,6 @@
 <?php
 
-//php-auth v0.1.0
+//php-auth v0.1.1
 
 require './libs/Slim/Slim.php';
 require_once 'dbHelper.php';
@@ -14,16 +14,20 @@ $db = new dbHelper();
 $app->post('/Mobile/v1_0/Register', function() use ($app) { 
     $data = json_decode($app->request->getBody());
     require_once 'passwordHash.php';
+    
     $mandatory = array('username');
     $mandatory = array('password');
     $mandatory = array('fullname');
     $mandatory = array('email');
     
-    $password = $data->password;
-    $data->password = passwordHash::hash($password);
+    $user = new user();
+    $user->username = $data->UserName;
+    $user->password = passwordHash::hash($data->NewPassword);
+    $user->fullname = $data->FullName;
+    $user->email = $data->EmailAddress;
     
     global $db;
-    $rows = $db->insert("users", $data, $mandatory);
+    $rows = $db->insert("users", $user, $mandatory);
     if($rows["status"]=="success"){
         $rows["message"] = "User added successfully.";
         $app->setCookie('AspNet.ApplicationCookie', sha1('cookie'));
@@ -40,6 +44,14 @@ function echoResponse($status_code, $response) {
     $app->status($status_code);
     $app->contentType('application/json');
     echo json_encode($response,JSON_NUMERIC_CHECK);
+}
+
+class user
+{
+    var $username;
+    var $password;
+    var $fullname;
+    var $email;
 }
 
 $app->run();
