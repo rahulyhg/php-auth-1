@@ -18,8 +18,13 @@ $app->post('/Mobile/v1_0/Register', function() use ($app) {
     $rows = $db->insert("users", $data, $mandatory);
     if($rows["status"]=="success"){
         $rows["message"] = "User added successfully.";
+        $app->setCookie('AspNet.ApplicationCookie', sha1('cookie'));
+        echoResponse(200, $rows);
     }
-    echoResponse(200, $rows);
+    else {
+        echoResponse(400, $rows);
+    }
+    
 });
 
 function echoResponse($status_code, $response) {
