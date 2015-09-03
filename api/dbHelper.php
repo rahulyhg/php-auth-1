@@ -156,33 +156,6 @@ class dbHelper {
         }
         return $response;
     }
-    /*function selectP($name){
-        // Select statement
-        try{
-            // $a = array();
-            // $w = "";
-            // // $where = array('name' => 'Ipsita Sahoo', 'uid'=>'170' );
-            // foreach ($where as $key => $value) {
-            //     $w .= " and " .$key. " like :".$key;
-            //     $a[":".$key] = $value;
-            // }
-            // $stmt = $this->db->prepare("CALL `simpleproc`(@a);SELECT @a AS `param1`;");
-            // $stmt->execute($a);
-            // return $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $stmt = $this->db->prepare("CALL $name(@resultId)"); 
-            $stmt->execute(); 
-            $stmt = $this->db->prepare("select @resultId as Id"); 
-            $stmt->execute(); 
-            $myResultId = $stmt->fetchColumn();
-
-            print "procedure returned \n".$myResultId;
-            
-        }catch(PDOException $e){
-            print_r('Query Failed: ' .$e->getMessage());
-            return $rows=null;
-            exit;
-        }
-    }*/
     function verifyRequiredParams($inArray, $requiredColumns) {
         $error = false;
         $errorColumns = "";
@@ -204,4 +177,3 @@ class dbHelper {
     }
 }
 
-?>

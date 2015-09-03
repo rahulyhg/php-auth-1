@@ -1,6 +1,6 @@
 <?php
 
-//php-auth v0.1.1
+//php-auth v0.2.0
 
 require './libs/Slim/Slim.php';
 require_once 'dbHelper.php';
@@ -8,36 +8,100 @@ require_once 'dbHelper.php';
 \Slim\Slim::registerAutoloader();
 $app = new \Slim\Slim();
 $app = \Slim\Slim::getInstance();
+$app->log->setEnabled(true);
 $db = new dbHelper();
 
 // Register
 $app->post('/Mobile/v1_0/Register', function() use ($app) { 
-    $data = json_decode($app->request->getBody());
-    require_once 'passwordHash.php';
+    try {
+        $data = json_decode($app->request->getBody());
+        require_once 'passwordHash.php';
     
-    $mandatory = array('username');
-    $mandatory = array('password');
-    $mandatory = array('fullname');
-    $mandatory = array('email');
+        $userusername = $data->UserName;
+        $userpassword = $data->NewPassword;
+        $userfullname = $data->FullName;
+        $useremail = $data->EmailAddress;
     
-    $user = new user();
-    $user->username = $data->UserName;
-    $user->password = passwordHash::hash($data->NewPassword);
-    $user->fullname = $data->FullName;
-    $user->email = $data->EmailAddress;
+        global $db;
+        $usernamecheck = $db->select("users","uid",array('username'=>$userusername));
+        $emailcheck = $db->select("users","uid",array('email'=>$useremail));
+        
+        $ir = null;
+        if ($userusername == "" ||
+            strlen($userusername) < 3 ||
+            strlen($userusername) > 20) {
+            $ir = new InvalidRequest();
+            $ir->ModelState->ErrorCode = array("1");
+            $ir->ModelState->ErrorMessage = array("Wrong UserName.");
+        }
+        else if ($useremail == "" ||
+            strlen($useremail) > 254) {
+            $ir = new InvalidRequest();
+            $ir->ModelState->ErrorCode = array("2");
+            $ir->ModelState->ErrorMessage = array("Wrong EmailAddress.");
+        }
+        else if ($userfullname == "" ||
+            strlen($userfullname) > 100) {
+            $ir = new InvalidRequest();
+            $ir->ModelState->ErrorCode = array("3");
+            $ir->ModelState->ErrorMessage = array("Wrong FullName.");
+        }
+        else if ($userpassword == "" ||
+            strlen($userpassword) < 6) {
+            $ir = new InvalidRequest();
+            $ir->ModelState->ErrorCode = array("4");
+            $ir->ModelState->ErrorMessage = array("Wrong Password.");
+        }
+        else if ($usernamecheck["status"]=="success") {
+            $ir = new InvalidRequest();
+            $ir->ModelState->ErrorCode = array("6");
+            $ir->ModelState->ErrorMessage = array("UserName already exists.");
+        }
+        else if ($emailcheck["status"]=="success") {
+            $ir = new InvalidRequest();
+            $ir->ModelState->ErrorCode = array("7");
+            $ir->ModelState->ErrorMessage = array("EmailAddress already exists.");
+        }
+        else if (strpos($userfullname, "<") != false) {
+            $ir = new InvalidRequest();
+            $ir->ModelState->ErrorCode = array("8");
+            $ir->ModelState->ErrorMessage = array("Invalid FullName.");
+        }    
+        else if (strpos($userusername, "<") != false) {
+            $ir = new InvalidRequest();
+            $ir->ModelState->ErrorCode = array("9");
+            $ir->ModelState->ErrorMessage = array("Invalid UserName.");
+        }    
     
-    global $db;
-    $rows = $db->insert("users", $user, $mandatory);
-    if($rows["status"]=="success"){
-        $rows["message"] = "User added successfully.";
-        $app->setCookie('AspNet.ApplicationCookie', sha1('cookie'));
-        echoResponse(200, $rows);
+        if ($ir !== null) {
+            echoResponse(400, array($ir));
+        }
+        else {
+            $user = new user();
+            $user->username = $userusername;
+            $user->password = passwordHash::hash($userpassword);
+            $user->fullname = $userfullname;
+            $user->email = $useremail;
+    
+            $mandatory = array('username','password','fullname','email');
+            $rows = $db->insert("users", $user, $mandatory);
+            if($rows["status"]=="success"){
+                $rows["message"] = "User added successfully.";
+                $app->setCookie('.AspNet.ApplicationCookie', sha1('cookie'));
+                echoResponse(200, $rows);
+            }
+            else {
+                echoResponse(400, $rows);
+            }
+        }    
+    } catch(Exception $e){
+        $ir = new InvalidRequest();
+        $ir->ModelState->ErrorCode = array("11");
+        $ir->ModelState->ErrorMessage = array($e->getMessage());
+        echoResponse(400, array($ir));
     }
-    else {
-        echoResponse(400, $rows);
-    }
-    
 });
+
 
 function echoResponse($status_code, $response) {
     global $app;
@@ -46,14 +110,23 @@ function echoResponse($status_code, $response) {
     echo json_encode($response,JSON_NUMERIC_CHECK);
 }
 
-class user
-{
+class user {
     var $username;
     var $password;
     var $fullname;
     var $email;
-}
+};
+
+class InvalidRequest {
+  var $Message = "The request is invalid.";
+  var $ModelState;
+};
+
+class ErrorModel {
+    var $ErrorCode;
+    var $ErrorMessage;
+};
+
 
 $app->run();
 
-?>
