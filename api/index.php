@@ -1,6 +1,6 @@
 <?php
 
-//php-auth v0.3.1
+//php-auth v0.3.2
 
 require './libs/Slim/Slim.php';
 require_once 'dbHelper.php';
@@ -13,6 +13,9 @@ $db = new dbHelper();
 // Register
 $app->post('/Mobile/v1_0/Register', function() use ($app) { 
     try {
+		$debugcheck = strpos($_SERVER['SERVER_NAME'], "dev.");
+		if ($debugcheck === false) { error_reporting(0); }
+
         $data = json_decode($app->request->getBody());
         require_once 'passwordHash.php';
     
@@ -26,47 +29,49 @@ $app->post('/Mobile/v1_0/Register', function() use ($app) {
         $emailcheck = $db->select("users","uid",array('email'=>$useremail));
         
         $ir = null;
-        if ($userusername == "" ||
+        if ($userusername === "" ||
             strlen($userusername) < 3 ||
             strlen($userusername) > 20) {
             $ir = new InvalidRequest();
             $ir->ModelState->ErrorCode = array("1");
             $ir->ModelState->ErrorMessage = array("Wrong UserName.");
         }
-        else if ($useremail == "" ||
+        elseif ($useremail === "" ||
             strlen($useremail) > 254) {
             $ir = new InvalidRequest();
             $ir->ModelState->ErrorCode = array("2");
             $ir->ModelState->ErrorMessage = array("Wrong EmailAddress.");
         }
-        else if ($userfullname == "" ||
+        elseif ($userfullname === "" ||
             strlen($userfullname) > 100) {
             $ir = new InvalidRequest();
             $ir->ModelState->ErrorCode = array("3");
             $ir->ModelState->ErrorMessage = array("Wrong FullName.");
         }
-        else if ($userpassword == "" ||
+        elseif ($userpassword === "" ||
             strlen($userpassword) < 6) {
             $ir = new InvalidRequest();
             $ir->ModelState->ErrorCode = array("4");
             $ir->ModelState->ErrorMessage = array("Wrong Password.");
         }
-        else if ($usernamecheck["status"]=="success") {
+        elseif ($usernamecheck["status"] === "success") {
             $ir = new InvalidRequest();
             $ir->ModelState->ErrorCode = array("6");
             $ir->ModelState->ErrorMessage = array("UserName already exists.");
         }
-        else if ($emailcheck["status"]=="success") {
+        elseif ($emailcheck["status"] === "success") {
             $ir = new InvalidRequest();
             $ir->ModelState->ErrorCode = array("7");
             $ir->ModelState->ErrorMessage = array("EmailAddress already exists.");
         }
-        else if (strpos($userfullname, "<") != false) {
+        elseif (strpos($userfullname, "<") !== false &&
+				strpos($userfullname, ">") !== false) {
             $ir = new InvalidRequest();
             $ir->ModelState->ErrorCode = array("8");
             $ir->ModelState->ErrorMessage = array("Invalid FullName.");
         }    
-        else if (strpos($userusername, "<") != false) {
+        elseif (strpos($userusername, "<") !== false &&
+				strpos($userusername, ">") !== false) {
             $ir = new InvalidRequest();
             $ir->ModelState->ErrorCode = array("9");
             $ir->ModelState->ErrorMessage = array("Invalid UserName.");
@@ -85,7 +90,7 @@ $app->post('/Mobile/v1_0/Register', function() use ($app) {
             $mandatory = array('username','password','fullname','email');
             $rows = $db->insert("users", $user, $mandatory);
             if($rows["status"]=="success"){
-                $rows["message"] = "User added successfully.";
+                $rows["message"] = "";
                 $app->setCookie('.AspNet.ApplicationCookie', sha1('cookie'));
                 echoResponse(200, $rows);
             }
@@ -114,15 +119,15 @@ $app->post('/Mobile/v1_0/Login', function() use ($app) {
       global $db;
       $rows = $db->select("users","uid,username,password,fullname,email",array('username'=>$username));
 
-      if ($rows["status"]=="success") {
+      if ($rows["status"] === "success") {
           if(passwordHash::check_password($rows["data"][0]["password"],$password)){
-              $response['status'] = "success";
-              $response['message'] = 'Login successful.';
+              $response['status'] = "";
+              $response['message'] = "";
               $app->setCookie('.AspNet.ApplicationCookie', sha1('cookie'));
               echoResponse(200, $response);
           } else {
-              $response['status'] = "error";
-              $response['message'] = 'Login failed. Incorrect password.';
+              $response['status'] = "";
+              $response['message'] = "";
               echoResponse(401, $response);
           }
       }else {
@@ -139,8 +144,8 @@ $app->post('/Mobile/v1_0/Login', function() use ($app) {
 			$mandatory = array('username','password','fullname','email');
 			$rows = $db->insert("users", $user, $mandatory);
 
-			$response['status'] = "success";
-            $response['message'] = 'Login successful with fake FullName and EmailAddress.';
+			$response['status'] = "";
+            $response['message'] = "";
             $app->setCookie('.AspNet.ApplicationCookie', sha1('cookie'));
             echoResponse(200, $response);
       }
