@@ -1,6 +1,6 @@
 <?php
 
-//php-auth v0.2.0
+//php-auth v0.3.0
 
 require './libs/Slim/Slim.php';
 require_once 'dbHelper.php';
@@ -8,7 +8,6 @@ require_once 'dbHelper.php';
 \Slim\Slim::registerAutoloader();
 $app = new \Slim\Slim();
 $app = \Slim\Slim::getInstance();
-$app->log->setEnabled(true);
 $db = new dbHelper();
 
 // Register
@@ -98,10 +97,47 @@ $app->post('/Mobile/v1_0/Register', function() use ($app) {
         $ir = new InvalidRequest();
         $ir->ModelState->ErrorCode = array("11");
         $ir->ModelState->ErrorMessage = array($e->getMessage());
-        echoResponse(400, array($ir));
+        error_log($e->getMessage());
+        echoResponse(500, array($ir));
     }
 });
 
+$app->post('/Mobile/v1_0/Login', function() use ($app) {
+    try {
+      require_once 'passwordHash.php';
+      $data = json_decode($app->request->getBody());
+      $response = array();
+
+      $username = $data->UserName;
+      $password = $data->Password;
+
+      global $db;
+      $rows = $db->select("users","uid,username,password,fullname,email",array('username'=>$username));
+
+      if ($rows["status"]=="success") {
+          if(passwordHash::check_password($rows["data"][0]["password"],$password)){
+              $response['status'] = "success";
+              $response['message'] = 'Login successful.';
+              $app->setCookie('.AspNet.ApplicationCookie', sha1('cookie'));
+              echoResponse(200, $response);
+          } else {
+              $response['status'] = "error";
+              $response['message'] = 'Login failed. Incorrect password.';
+              echoResponse(401, $response);
+          }
+      }else {
+          $response['status'] = "error";
+          $response['message'] = 'No such user is registered.';
+          echoResponse(401, $response);
+      }
+    } catch(Exception $e){
+        $ir = new InvalidRequest();
+        $ir->ModelState->ErrorCode = array("11");
+        $ir->ModelState->ErrorMessage = array($e->getMessage());
+        error_log($e->getMessage());
+        echoResponse(500, array($ir));
+    }
+});
 
 function echoResponse($status_code, $response) {
     global $app;
