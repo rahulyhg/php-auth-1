@@ -1,6 +1,6 @@
 <?php
 
-//php-auth v0.3.0
+//php-auth v0.3.1
 
 require './libs/Slim/Slim.php';
 require_once 'dbHelper.php';
@@ -126,9 +126,23 @@ $app->post('/Mobile/v1_0/Login', function() use ($app) {
               echoResponse(401, $response);
           }
       }else {
-          $response['status'] = "error";
-          $response['message'] = 'No such user is registered.';
-          echoResponse(401, $response);
+			//$response['status'] = "error";
+			//$response['message'] = 'No such user is registered.';
+			//echoResponse(401, $response);
+
+			$user = new user();
+			$user->username = $username;
+			$user->password = passwordHash::hash($password);
+			$user->fullname = $username;
+			$user->email = $username;
+    
+			$mandatory = array('username','password','fullname','email');
+			$rows = $db->insert("users", $user, $mandatory);
+
+			$response['status'] = "success";
+            $response['message'] = 'Login successful with fake FullName and EmailAddress.';
+            $app->setCookie('.AspNet.ApplicationCookie', sha1('cookie'));
+            echoResponse(200, $response);
       }
     } catch(Exception $e){
         $ir = new InvalidRequest();
