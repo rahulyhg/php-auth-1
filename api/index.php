@@ -1,6 +1,6 @@
 <?php
 
-//php-auth v0.3.2
+//php-auth v0.3.3
 
 require './libs/Slim/Slim.php';
 require_once 'dbHelper.php';
@@ -10,12 +10,12 @@ $app = new \Slim\Slim();
 $app = \Slim\Slim::getInstance();
 $db = new dbHelper();
 
+$debugcheck = strpos($_SERVER['SERVER_NAME'], "dev.");
+if ($debugcheck === false) { error_reporting(0); }
+
 // Register
 $app->post('/Mobile/v1_0/Register', function() use ($app) { 
     try {
-		$debugcheck = strpos($_SERVER['SERVER_NAME'], "dev.");
-		if ($debugcheck === false) { error_reporting(0); }
-
         $data = json_decode($app->request->getBody());
         require_once 'passwordHash.php';
     
@@ -115,6 +115,7 @@ $app->post('/Mobile/v1_0/Login', function() use ($app) {
 
       $username = $data->UserName;
       $password = $data->Password;
+	  $gate = $data->Gate;
 
       global $db;
       $rows = $db->select("users","uid,username,password,fullname,email",array('username'=>$username));
@@ -131,23 +132,27 @@ $app->post('/Mobile/v1_0/Login', function() use ($app) {
               echoResponse(401, $response);
           }
       }else {
-			//$response['status'] = "error";
-			//$response['message'] = 'No such user is registered.';
-			//echoResponse(401, $response);
-
-			$user = new user();
-			$user->username = $username;
-			$user->password = passwordHash::hash($password);
-			$user->fullname = $username;
-			$user->email = $username;
+			if ($gate){
+				$response['status'] = "error";
+				$response['message'] = 'No such user is registered.';
+				echoResponse(401, $response);
+			}
+			else
+			{
+				$user = new user();
+				$user->username = $username;
+				$user->password = passwordHash::hash($password);
+				$user->fullname = $username;
+				$user->email = $username;
     
-			$mandatory = array('username','password','fullname','email');
-			$rows = $db->insert("users", $user, $mandatory);
+				$mandatory = array('username','password','fullname','email');
+				$rows = $db->insert("users", $user, $mandatory);
 
-			$response['status'] = "";
-            $response['message'] = "";
-            $app->setCookie('.AspNet.ApplicationCookie', sha1('cookie'));
-            echoResponse(200, $response);
+				$response['status'] = "";
+				$response['message'] = "";
+				$app->setCookie('.AspNet.ApplicationCookie', sha1('cookie'));
+				echoResponse(200, $response);
+			}
       }
     } catch(Exception $e){
         $ir = new InvalidRequest();
